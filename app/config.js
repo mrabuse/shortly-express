@@ -44,7 +44,8 @@ db.knex.schema.hasTable('users').then(function(exists) {
     db.knex.schema.createTable('users', function (user) {
       user.increments('id').primary();
       user.string('username', 255);
-      user.integer('password');
+      user.string('password', 255);
+      user.string('salt', 255);
     }).then(function (table) {
       console.log('Created Table', table);
     });
@@ -57,17 +58,6 @@ db.knex.schema.hasTable('links_users').then(function(exists) {
       linkUser.increments('id').primary();
       linkUser.integer('linkId');
       linkUser.integer('userId');
-    }).then(function (table) {
-      console.log('Created Table', table);
-    });
-  }
-});
-
-db.knex.schema.hasTable('passwords').then(function(exists) {
-  if (!exists) {
-    db.knex.schema.createTable('passwords', function(password) {
-      password.increments('id').primary();
-      password.string('encrypted', 255);
     }).then(function (table) {
       console.log('Created Table', table);
     });

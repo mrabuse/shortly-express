@@ -3,7 +3,6 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 
-
 var db = require('./app/config');
 var Users = require('./app/collections/users');
 var User = require('./app/models/user');
@@ -25,7 +24,7 @@ app.use(express.static(__dirname + '/public'));
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  res.render('login');
 });
 
 app.get('/create', 
@@ -72,6 +71,43 @@ function(req, res) {
   });
 });
 
+app.get('/login', function(req, res) {
+  res.render('login');
+});
+
+app.post('/login', function (req, res) {
+  //does submitted user exist
+   //if yes
+     //does password match stored hash
+      //if yes
+        //redirect to page with their links (?)
+      //if no
+        //redirect to error
+   //if no
+     //redirect to signup page
+});
+
+app.get('/signup', function (req, res) {
+  res.render('signup');
+});
+
+app.post('/signup', function (req, res) {
+
+  util.userNameExists(req.body.username, function (exists) {
+    console.log('we call the callback');
+    if (!exists) {
+      Users.create({
+        username: req.body.username,
+        password: req.body.password
+      }).then(function(newUser) {
+        res.status(200).send(newUser);
+      });
+    } else {
+      console.log('Username already exists!', username);
+      res.status(409);
+    }
+  });
+});
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
