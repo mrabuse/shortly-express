@@ -1,8 +1,10 @@
 var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
+var session = require('express-session');
 var bodyParser = require('body-parser');
 var bcrypt = require('bcrypt-nodejs');
+
 var db = require('./app/config');
 var Users = require('./app/collections/users');
 var User = require('./app/models/user');
@@ -21,26 +23,27 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+app.use(session({
+  secret: 'what is this dunno',
+  resave: false,
+  saveUninitialized: true
+}));
 
-app.get('/', 
-function(req, res) {
-  res.render('login');
-});
-
-app.get('/create', 
-function(req, res) {
+app.get('/', util.checkUser, function(req, res) {
   res.render('index');
 });
 
-app.get('/links', 
-function(req, res) {
+app.get('/create', util.checkUser, function(req, res) {
+  res.render('index');
+});
+
+app.get('/links', util.checkUser, function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.status(200).send(links.models);
   });
 });
 
-app.post('/links', 
-function(req, res) {
+app.post('/links', function(req, res) {
   var uri = req.body.url;
 
   if (!util.isValidUrl(uri)) {
@@ -49,9 +52,12 @@ function(req, res) {
   }
 
   new Link({ url: uri }).fetch().then(function(found) {
+    console.log('you got it!');
     if (found) {
+      console.log('we have it!');
       res.status(200).send(found.attributes);
     } else {
+      console.log('erm one sec');
       util.getUrlTitle(uri, function(err, title) {
         if (err) {
           console.log('Error reading URL heading: ', err);
@@ -83,18 +89,13 @@ app.post('/login', function (req, res) {
       var model = Users.findWhere({username: req.body.username});
       var hash = model.get('password');
       bcrypt.compare(req.body.password, hash, function(err, result) {
-        // if (err) {
-        //   console.log('Incorrect password');
-        //   res.status(404);
-        //   res.redirect('/login');
-        // }
         console.log('result', result);
         if (!result) {
           console.log('Incorrect password');
           res.status(404);
           res.redirect('/login');
         } else {
-          res.status(200).redirect('/create');
+          util.createSession(req, res, req.body.username);
         }
       });
     } else {
@@ -102,15 +103,6 @@ app.post('/login', function (req, res) {
       res.redirect('/login');
     }
   });
-  //does submitted user exist
-   //if yes
-     //does password match stored hash
-      //if yes
-        //redirect to page with their links (?)
-      //if no
-        //redirect to error
-   //if no
-     //redirect to signup page
 });
 
 app.get('/signup', function (req, res) {
@@ -125,15 +117,19 @@ app.post('/signup', function (req, res) {
         username: req.body.username,
         password: req.body.password
       }).then(function (newUser) {
-        console.log('yay created');
-        res.status(200);
-        res.redirect('/login');
+        util.createSession(req, res, newUser);
       });
     } else {
       console.log('Username already exists!', req.body.username);
       res.status(409);
       res.redirect('/signup');
     }
+  });
+});
+
+app.get('/logout', function(req, res) {
+  req.session.destroy(function() {
+    res.redirect('/login');
   });
 });
 /************************************************************/
