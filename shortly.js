@@ -2,7 +2,7 @@ var express = require('express');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
-
+var bcrypt = require('bcrypt-nodejs');
 var db = require('./app/config');
 var Users = require('./app/collections/users');
 var User = require('./app/models/user');
@@ -80,18 +80,26 @@ app.post('/login', function (req, res) {
   util.userNameExists(req.body.username, function(exists) {
     console.log('inside', req.body);
     if (exists) {
-      var hash = Users.query('where', 'username', '=', req.body.username).fetch({withRelated: ['password']});
-      bcrypt.compare(req.body.password, hash, function(err, res) {
-        if (err) {
+      var model = Users.findWhere({username: req.body.username});
+      var hash = model.get('password');
+      bcrypt.compare(req.body.password, hash, function(err, result) {
+        // if (err) {
+        //   console.log('Incorrect password');
+        //   res.status(404);
+        //   res.redirect('/login');
+        // }
+        console.log('result', result);
+        if (!result) {
           console.log('Incorrect password');
-          res.redirect('login');
+          res.status(404);
+          res.redirect('/login');
+        } else {
+          res.status(200).redirect('/create');
         }
-        res.status(200);
-        res.redirect('index');
       });
     } else {
       console.log('Non-existant user');
-      res.redirect('login');
+      res.redirect('/login');
     }
   });
   //does submitted user exist
@@ -118,11 +126,13 @@ app.post('/signup', function (req, res) {
         password: req.body.password
       }).then(function (newUser) {
         console.log('yay created');
-        res.status(200).send(newUser);
+        res.status(200);
+        res.redirect('/login');
       });
     } else {
-      console.log('Username already exists!', username);
+      console.log('Username already exists!', req.body.username);
       res.status(409);
+      res.redirect('/signup');
     }
   });
 });
