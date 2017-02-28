@@ -76,6 +76,24 @@ app.get('/login', function(req, res) {
 });
 
 app.post('/login', function (req, res) {
+  console.log('body', req.body);
+  util.userNameExists(req.body.username, function(exists) {
+    console.log('inside', req.body);
+    if (exists) {
+      var hash = Users.query('where', 'username', '=', req.body.username).fetch({withRelated: ['password']});
+      bcrypt.compare(req.body.password, hash, function(err, res) {
+        if (err) {
+          console.log('Incorrect password');
+          res.redirect('login');
+        }
+        res.status(200);
+        res.redirect('index');
+      });
+    } else {
+      console.log('Non-existant user');
+      res.redirect('login');
+    }
+  });
   //does submitted user exist
    //if yes
      //does password match stored hash
@@ -94,12 +112,12 @@ app.get('/signup', function (req, res) {
 app.post('/signup', function (req, res) {
 
   util.userNameExists(req.body.username, function (exists) {
-    console.log('we call the callback');
     if (!exists) {
       Users.create({
         username: req.body.username,
         password: req.body.password
-      }).then(function(newUser) {
+      }).then(function (newUser) {
+        console.log('yay created');
         res.status(200).send(newUser);
       });
     } else {

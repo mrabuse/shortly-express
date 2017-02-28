@@ -8,9 +8,8 @@ var User = db.Model.extend({
   tableName: 'users',
   hasTimestamps: false,
   initialize: function() {
-    console.log('user got intitialized!');
     this.on('creating', function(model, attrs, options) {
-      console.log(model);
+      console.log('model', model);
       bcrypt.genSalt(saltRounds, function (err, salt) {
         bcrypt.hash(model.get('password'), salt, null, function (err, hash) {
           model.set('password', hash);
